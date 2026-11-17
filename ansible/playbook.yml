@@ -1,0 +1,70 @@
+
+---
+- name: Desplegar aplicacion Spring Boot en AWS EC2
+  hosts: springboot
+  become: yes
+
+  vars:
+    app_name: springboot
+    app_directory: /opt/springboot
+    jar_file: app.jar
+
+  tasks:
+
+    # 1. Actualizar paquetes de Ubuntu
+    - name: Actualizar repositorios del sistema
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    # 2. Instalar Java 21
+    - name: Instalar Java 21
+      ansible.builtin.apt:
+        name: openjdk-21-jre-headless
+        state: present
+
+    # 3. Crear directorio de la aplicacion
+    - name: Crear directorio de Spring Boot
+      ansible.builtin.file:
+        path: "{{ app_directory }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    # 4. Copiar el JAR al servidor EC2
+    - name: Copiar aplicacion Spring Boot
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../app/target/{{ jar_file }}"
+        dest: "{{ app_directory }}/app.jar"
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+
+    # 5. Crear servicio systemd
+    - name: Configurar servicio Spring Boot
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/springboot.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=Aplicacion Spring Boot
+          After=network.target
+
+          [Service]
+          User=ubuntu
+          WorkingDirectory={{ app_directory }}
+          ExecStart=/usr/bin/java -jar {{ app_directory }}/app.jar
+          Restart=always
+          RestartSec=10
+
+          [Install]
+          WantedBy=multi-user.target
+
+    # 6. Iniciar aplicacion
+    - name: Iniciar servicio Spring Boot
+      ansible.builtin.systemd:
+        name: springboot
+        daemon_reload: yes
+        enabled: yes
+        state: restarted
