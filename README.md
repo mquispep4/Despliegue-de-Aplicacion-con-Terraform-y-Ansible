@@ -1,6 +1,5 @@
 # Despliegue-de-Aplicacion-con-Terraform-y-Ansible
-
-# Guía de comandos básicos – Terraform, Ansible y Jenkins
+# Guía de comandos básicos
 
 ## 1. Terraform
 
